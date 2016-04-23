@@ -2,8 +2,8 @@
 <?php
 # Check if script is run as root...
 if(get_current_user() !== 'root') {
-	echo 'Please run this script as root :)' . PHP_EOL;
-	exit();
+    echo 'Please run this script as root :)' . PHP_EOL;
+    exit();
 }
 
 # Constants
@@ -19,11 +19,11 @@ define('WEBROOT', '/var/www');
  * @return string the answer to the question
  */
 function getUserInput($question) {
-	$input = "";
-	do {
-		echo trim($question) . ' ';
-	} while(empty(trim($input = fgets(STDIN))));
-	return trim($input);
+    $input = "";
+    do {
+        echo trim($question) . ' ';
+    } while(empty(trim($input = fgets(STDIN))));
+    return trim($input);
 }
 
 /**
@@ -32,10 +32,10 @@ function getUserInput($question) {
  * @return string|bool the ip if the domain resolves or false
  */
 function doesDomainResolve($domain) {
-	// Add dot so it can't accidently resolve to local IP
-	$host =  $domain . '.';
+    // Add dot so it can't accidently resolve to local IP
+    $host =  $domain . '.';
 
-	return (($ip = gethostbyname($host)) !== $host) ? $ip : false;
+    return (($ip = gethostbyname($host)) !== $host) ? $ip : false;
 }
 
 /**
@@ -45,30 +45,30 @@ function doesDomainResolve($domain) {
  */
 function isValidDomainName($domainName)
 {
-	return (preg_match("/^([a-z\d](-*[a-z\d])*)(\.([a-z\d](-*[a-z\d])*))*$/i", $domainName) //valid chars check
-			&& preg_match("/^.{1,253}$/", $domainName) //overall length check
-			&& preg_match("/^[^\.]{1,63}(\.[^\.]{1,63})*$/", $domainName)   ); //length of each label
+    return (preg_match("/^([a-z\d](-*[a-z\d])*)(\.([a-z\d](-*[a-z\d])*))*$/i", $domainName) //valid chars check
+            && preg_match("/^.{1,253}$/", $domainName) //overall length check
+            && preg_match("/^[^\.]{1,63}(\.[^\.]{1,63})*$/", $domainName)   ); //length of each label
 }
 
 /*---------------------------------------------------------------------------*/
 
 # Read the template file
 if(file_exists(TEMPLATE_FILE)) {
-	$template = file_get_contents(TEMPLATE_FILE);
+    $template = file_get_contents(TEMPLATE_FILE);
 } else {
-	echo 'Unable to read template file "' . TEMPLATE_FILE . '"';
-	exit(1);
+    echo 'Unable to read template file "' . TEMPLATE_FILE . '"';
+    exit(1);
 }
 
 # Ask the user for the server name
 $serverName = '';
 do {
-	$serverName = getUserInput("Enter server name:");
-	if(isValidDomainName($serverName)) {
-		break;
-	} else {
-		echo 'Invalid URL' . PHP_EOL;
-	}
+    $serverName = getUserInput("Enter server name:");
+    if(isValidDomainName($serverName)) {
+        break;
+    } else {
+        echo 'Invalid URL' . PHP_EOL;
+    }
 } while (true);
 
 # To use Let's encrypt the domain has to exist and resolve.
@@ -76,11 +76,11 @@ do {
 # check if it equals the server's public IP
 $serverIp = doesDomainResolve($serverName);
 if($serverIp !== PUBLIC_IP) {
-	// Server IP either does not resolve or does not equal
-	// the servers public IP
-	echo 'Domain did not resolve to the public ip but to ';
-	echo ($serverIp ?: 'false') . PHP_EOL;
-	exit(1);
+    // Server IP either does not resolve or does not equal
+    // the servers public IP
+    echo 'Domain did not resolve to the public ip but to ';
+    echo ($serverIp ?: 'false') . PHP_EOL;
+    exit(1);
 }
 
 # Everything is now ready so start writing things

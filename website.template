@@ -4,7 +4,7 @@ server {
     #listen [::]:80;
 
     location ~ /.well-known {
-	allow all;
+    allow all;
     }
 
     # Redirect all HTTP requests to HTTPS with a 301 Moved Permanently response.
@@ -30,13 +30,13 @@ server {
         # as directory, then fall back to displaying a 404.
         try_files $uri $uri/ =404;
 
-	# Caching
-	location ~*  \.(jpg|jpeg|png|gif|ico|css|js)$ {
- 	       expires 365d;
-	}
-	location ~*  \.(pdf)$ {
-		expires 30d;
-	}
+    # Caching
+    location ~*  \.(jpg|jpeg|png|gif|ico|css|js)$ {
+           expires 365d;
+    }
+    location ~*  \.(pdf)$ {
+        expires 30d;
+    }
     }
 
     include snippets/php-fpm.conf;
