@@ -1,0 +1,11 @@
+#!/usr/bin/php
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wesley
+ * Date: 4/23/16
+ * Time: 11:40 PM
+ */
+require_once '../vendor/autoload.php';
+
+\Mksite\Mksite::Mksite();
