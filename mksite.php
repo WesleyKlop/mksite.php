@@ -8,7 +8,7 @@ if(get_current_user() !== 'root') {
 
 # Constants
 define('NGINX_DIR', '/etc/nginx');
-define('TEMPLATE_FILE', __DIR__ . '/website.template');
+define('TEMPLATE_FILE', __DIR__ . '/template.website');
 define('PUBLIC_IP', '84.104.49.159');
 define('LETS_ENCRYPT_DIR', '/opt/letsencrypt');
 define('WEBROOT', '/var/www');
@@ -19,7 +19,6 @@ define('WEBROOT', '/var/www');
  * @return string the answer to the question
  */
 function getUserInput($question) {
-    $input = "";
     do {
         echo trim($question) . ' ';
     } while(empty(trim($input = fgets(STDIN))));
@@ -28,7 +27,7 @@ function getUserInput($question) {
 
 /**
  * Checks if a domain resolves to an IP
- * @param string domain a domain name eg. 'wesleyklop.nl'
+ * @param string $domain a domain name eg. 'wesleyklop.nl'
  * @return string|bool the ip if the domain resolves or false
  */
 function doesDomainResolve($domain) {
@@ -45,9 +44,12 @@ function doesDomainResolve($domain) {
  */
 function isValidDomainName($domainName)
 {
-    return (preg_match("/^([a-z\d](-*[a-z\d])*)(\.([a-z\d](-*[a-z\d])*))*$/i", $domainName) //valid chars check
-            && preg_match("/^.{1,253}$/", $domainName) //overall length check
-            && preg_match("/^[^\.]{1,63}(\.[^\.]{1,63})*$/", $domainName)   ); //length of each label
+    return (preg_match(/** @lang RegExp */
+            "/^([a-z\d](-*[a-z\d])*)(\.([a-z\d](-*[a-z\d])*))*$/i", $domainName) //valid chars check
+        && preg_match(/** @lang RegExp */
+            "/^.{1,253}$/", $domainName) //overall length check
+        && preg_match(/** @lang RegExp */
+            "/^[^\.]{1,63}(\.[^\.]{1,63})*$/", $domainName)); //length of each label
 }
 
 /*---------------------------------------------------------------------------*/
@@ -85,16 +87,16 @@ if($serverIp !== PUBLIC_IP) {
 
 # Everything is now ready so start writing things
 # Create directory structure
-$webdir = WEBROOT . '/' . $serverName;
-mkdir($webdir . '/public_html', 0775, true);
+$webDir = WEBROOT . '/' . $serverName;
+mkdir($webDir . '/public_html', 0775, true);
 mkdir('/var/log/nginx/'.$serverName, 0755);
 
 # Create placeholder index.html file
-file_put_contents($webdir.'/public_html/index.html', "<h1>VHOST {$serverName} is working!</h1>");
+file_put_contents($webDir . '/public_html/index.html', "<h1>Virtual host {$serverName} is working!</h1>");
 
 # chmod, chown etc via system calls
-echo system("/bin/chmod -R 775 " . escapeshellarg($webdir));
-echo system("/bin/chown -R www-data:www-data " . escapeshellarg($webdir));
+echo system("/bin/chmod -R 775 " . escapeshellarg($webDir));
+echo system("/bin/chown -R www-data:www-data " . escapeshellarg($webDir));
 
 # Webroot should now exist so edit and write the vhost config
 $vhostconf = str_replace('{{server_name}}', $serverName, $template);
@@ -107,7 +109,7 @@ echo system('/usr/sbin/nginx -t');
 echo system('/bin/ln -s '. escapeshellarg(NGINX_DIR.'/sites-available/'.$serverName) .  ' /etc/nginx/sites-enabled/');
 
 # Vhost should now be enabled so try to create the letsencrypt certs
-$command = LETS_ENCRYPT_DIR . '/letsencrypt-auto certonly -a webroot --webroot-path=' . $webdir . '/public_html' .
+$command = LETS_ENCRYPT_DIR . '/letsencrypt-auto certonly -a webroot --webroot-path=' . $webDir . '/public_html' .
 ' -d ' . escapeshellarg($serverName) . ' -d ' . escapeshellarg('www.' . $serverName);
 echo shell_exec($command);
 
