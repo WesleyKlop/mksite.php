@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 # Check if script is run as root...
-if(get_current_user() !== 'root') {
+if (getenv('USERNAME') !== 'root') {
     echo 'Please run this script as root :)' . PHP_EOL;
     exit();
 }
