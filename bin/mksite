@@ -6,7 +6,11 @@
  * Date: 4/23/16
  * Time: 11:40 PM
  */
+declare(strict_types = 1);
 require_once __DIR__ . '/../vendor/autoload.php';
 
-$mkSite = new \Mksite\MkSite();
+$argumentHolder = new \Mksite\ArgumentHolder;
+$validator = new \Mksite\Validator($argumentHolder);
+
+$mkSite = new \Mksite\MkSite($argumentHolder, $validator);
 $mkSite->MkSite();

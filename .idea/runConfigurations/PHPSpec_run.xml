@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="PHPSpec run" type="PhpLocalRunConfigurationType" factoryName="PHP Console" singleton="true" path="$USER_HOME$/.config/composer/vendor/bin/phpspec" scriptParameters="run">
+    <CommandLine workingDirectory="$PROJECT_DIR$" />
+    <option name="workingDirectory" value="$PROJECT_DIR$" />
+    <method />
+  </configuration>
+</component>

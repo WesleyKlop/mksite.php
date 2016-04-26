@@ -23,33 +23,54 @@ class MkSite
      * @var string $siteName the name of the Virtual Host
      */
     protected $siteName;
+    /**
+     * @var ArgumentHolder $args
+     */
+    protected $args;
+    /**
+     * @var Validator $validator
+     */
+    protected $validator;
 
+    /**
+     * MkSite constructor.
+     * @param ArgumentHolder $args
+     * @param Validator $validator
+     */
+    public function __construct(ArgumentHolder $args, Validator $validator)
+    {
+        $this->args = $args;
+        $this->validator = $validator;
+
+        $this->args->parseOpts();
+
+        if (!$this->validator->isScriptExecutedAsSuperUser(getenv("USERNAME")))
+            die("This script needs to be run as root!" . PHP_EOL);
+    }
+
+    /**
+     * Main function
+     * @throws \Exception when the siteName does not resolve to the correct IP
+     */
     public function MkSite()
     {
-        Arguments::parseOpts();
-
-        if (!Validator::isScriptExecutedAsSuperUser(getenv("USERNAME")))
-            die("This script needs to be run as root!" . PHP_EOL);
-
         // Get the template file
-        $template_path = realpath(Arguments::getArg('template-file'));
+        $template_path = realpath($this->args->getArg('template-file'));
         echo "Using template at " . $template_path . PHP_EOL;
-        $this->template = self::getTemplate($template_path);
+        $this->template = $this->getTemplate($template_path);
 
         // Ask the user for the site name
-        $this->siteName = self::getSiteName();
-        // Check if the site name is a subdomain
-        $isSubDomain = Validator::isSubDomain($this->siteName);
-        Arguments::setArg('subdomain', $isSubDomain);
-        echo "site is subdomain: " . (Arguments::getArg('subdomain') ? 'yes' : 'no') . PHP_EOL;
+        $this->siteName = $this->getSiteName();
 
-        # TODO: Maybe ask if the site is a subdomain?
+        // Ask if we should generate a www. server_name
+        $generateWww = $this->askYesNoQuestion('Should I generate a www. subdomain that points to the site name too?');
+        $this->args->setArg('subdomain', $generateWww);
 
-        // Verify that the domain name resolves to Arguments::getArg('public-ip');
+        // Verify that the domain name resolves to $this->args->getArg('public-ip');
         echo "Testing if the url resolves to your public IP..." . PHP_EOL;
         $domainIp = gethostbyname($this->siteName);
-        if ($domainIp !== Arguments::getArg('public-ip'))
-            throw new \Exception($this->siteName . " does not resolve to ip " . Arguments::getArg('public-ip') . "!");
+        if ($domainIp !== $this->args->getArg('public-ip'))
+            throw new \Exception($this->siteName . " does not resolve to ip " . $this->args->getArg('public-ip') . "!");
         echo $this->siteName . " resolves to " . $domainIp . PHP_EOL;
 
         // Checks completed, start writing configs and dirs
@@ -57,8 +78,8 @@ class MkSite
         $this->writeVHostConfig();
 
         // Enable the virtual host and reload
-        echo system('/bin/ln -s ' . escapeshellarg(Arguments::getArg('nginx-dir') . '/sites-available/' . $this->siteName) . ' /etc/nginx/sites-enabled/');
-        echo self::reloadNginx();
+        echo system('/bin/ln -s ' . escapeshellarg($this->args->getArg('nginx-dir') . '/sites-available/' . $this->siteName) . ' /etc/nginx/sites-enabled/');
+        echo $this->reloadNginx();
 
         // Do a quick config test
         echo system('/usr/bin/nginx -t');
@@ -68,13 +89,13 @@ class MkSite
         // Change the config files to make use of it
         $this->setSSLConfig();
         // Reload nginx
-        echo system('/bin/systemctl reload nginx') . PHP_EOL;
+        echo $this->reloadNginx();
 
         // Done!
         echo 'Your site should now be accessible via HTTPS! :D' . PHP_EOL .
-            'Website root => ' . Arguments::getArg('webroot-dir') . '/' . $this->siteName . '/public_html' . PHP_EOL .
-            'Site config file => ' . Arguments::getArg('nginx-dir') . '/sites-available/' . $this->siteName . PHP_EOL .
-            'Certificate location => ' . Arguments::getArg('lets-encrypt-dir') . '/live/' . $this->siteName . PHP_EOL .
+            'Website root => ' . $this->args->getArg('webroot-dir') . '/' . $this->siteName . '/public_html' . PHP_EOL .
+            'Site config file => ' . $this->args->getArg('nginx-dir') . '/sites-available/' . $this->siteName . PHP_EOL .
+            'Certificate location => /etc/letsencrypt/live/' . $this->siteName . PHP_EOL .
             'Website location: https://' . $this->siteName . PHP_EOL;
     }
 
@@ -84,7 +105,7 @@ class MkSite
      * @return string the template file
      * @throws \Exception when the file is not found
      */
-    private static function getTemplate(string $templateFile) : string
+    private function getTemplate(string $templateFile) : string
     {
         // Check if the file exists
         if (file_exists($templateFile)
@@ -99,14 +120,26 @@ class MkSite
      * Asks the user for a valid domain name
      * @return string a valid domain name
      */
-    private static function getSiteName() : string
+    private function getSiteName() : string
     {
         do {
             echo "Enter the site name: ";
             $input = trim(fgets(STDIN));
-        } while (!Validator::isValidDomainName($input));
+        } while (!$this->validator->isValidDomainName($input));
 
         return $input;
+    }
+
+    public function askYesNoQuestion(string $question) :string
+    {
+        $matches = [];
+        do {
+            echo trim($question) . ' ';
+            $input = preg_match(/** @lang RegExp */
+                "/^y(?:es)?$|^n(?:o)?$/ix", fgets(STDIN), $matches);
+        } while ($input !== 1);
+
+        return $matches[0] === 'y';
     }
 
     /**
@@ -114,13 +147,13 @@ class MkSite
      */
     private function createDirectories()
     {
-        $this->webDir = Arguments::getArg('webroot-dir') . '/' . $this->siteName;
+        $this->webDir = $this->args->getArg('webroot-dir') . '/' . $this->siteName;
         // Create the site root, by default will be /var/www/{siteName}/public_html
         echo "Creating directory " . $this->webDir . '/public_html' . PHP_EOL;
         mkdir($this->webDir . '/public_html', 0775, true);
         // Create log directory
-        echo "Creating directory " . Arguments::getArg('log-dir') . '/' . $this->siteName . PHP_EOL;
-        mkdir(Arguments::getArg('log-dir') . '/' . $this->siteName);
+        echo "Creating directory " . $this->args->getArg('log-dir') . '/' . $this->siteName . PHP_EOL;
+        mkdir($this->args->getArg('log-dir') . '/' . $this->siteName);
 
         // Create - temporary - index.html file in the site root
         file_put_contents($this->webDir . '/public_html/index.html', "<h1>Virtual host {$this->siteName} is working!</h1>");
@@ -139,20 +172,24 @@ class MkSite
     {
         // Set template keys
         $this->template = str_replace('{{server_name}}', $this->siteName, $this->template);
-        $this->template = str_replace('{{webroot}}', Arguments::getArg('webroot-dir'), $this->template);
+        $this->template = str_replace('{{webroot}}', $this->args->getArg('webroot-dir'), $this->template);
 
-        echo "Creating subdomain config: " . (Arguments::getArg('subdomain') ? 'yes' : 'no') . PHP_EOL;
-        if (Arguments::getArg('subdomain')) {
+        echo "Creating subdomain config: " . ($this->args->getArg('subdomain') ? 'yes' : 'no') . PHP_EOL;
+        if ($this->args->getArg('subdomain')) {
             $this->template = str_replace('{{www_server_name}}', '', $this->template);
         } else {
             $this->template = str_replace('{{www_server_name}}', 'www.' . $this->siteName, $this->template);
         }
 
         // Insert into the config
-        file_put_contents(Arguments::getArg('nginx-dir') . '/sites-available/' . $this->siteName, $this->template);
+        file_put_contents($this->args->getArg('nginx-dir') . '/sites-available/' . $this->siteName, $this->template);
     }
 
-    protected static function reloadNginx()
+    /**
+     * Reload Nginx using systemctl(Systemd)
+     * @return mixed
+     */
+    protected function reloadNginx()
     {
         return system('/bin/systemctl reload nginx');
     }
@@ -162,20 +199,20 @@ class MkSite
      */
     private function createLetsEncryptCerts()
     {
-        $command = Arguments::getArg('lets-encrypt-dir') . '/letsencrypt-auto certonly -a webroot --webroot-path=' . escapeshellarg($this->webDir . '/public_html') .
+        $command = $this->args->getArg('lets-encrypt-dir') . '/letsencrypt-auto certonly -a webroot --webroot-path=' . escapeshellarg($this->webDir . '/public_html') .
             ' -d ' . escapeshellarg($this->siteName);
         // Append the www. domain if the site is not a subdomain
-        $command .= !Arguments::getArg('subdomain') ? ' -d ' . escapeshellarg('www.' . $this->siteName) : '';
+        $command .= !$this->args->getArg('subdomain') ? ' -d ' . escapeshellarg('www.' . $this->siteName) : '';
         echo "executing:" . PHP_EOL . $command . PHP_EOL;
         echo system($command);
     }
 
     /**
-     * Replace all occurences of #{{ssl}} located in the template file with nothing
+     * Replace all occurrences of #{{ssl}} located in the template file with nothing
      */
     private function setSSLConfig()
     {
         $this->template = str_replace('#{{ssl}}', '', $this->template);
-        file_put_contents(Arguments::getArg('nginx-dir') . '/sites-available/' . $this->siteName, $this->template);
+        file_put_contents($this->args->getArg('nginx-dir') . '/sites-available/' . $this->siteName, $this->template);
     }
 }

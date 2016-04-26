@@ -14,9 +14,21 @@ namespace Mksite;
  */
 class Validator
 {
-    public static function isScriptExecutedAsSuperUser($user)
+
+    protected $argumentHolder;
+
+    /**
+     * Validator constructor.
+     * @param ArgumentHolder $argumentHolder
+     */
+    public function __construct(ArgumentHolder $argumentHolder)
     {
-        return $user == Arguments::getArg('superuser');
+        $this->argumentHolder = $argumentHolder;
+    }
+
+    public function isScriptExecutedAsSuperUser($user)
+    {
+        return $user == $this->argumentHolder->getArg('superuser');
     }
 
     /**
@@ -24,9 +36,9 @@ class Validator
      * @param string $domainName a domain name eg. 'wesleyklop.nl'
      * @return string|bool the ip if the domain resolves or false
      */
-    public static function doesDomainResolve($domainName)
+    public function doesDomainResolve($domainName)
     {
-        // Add dot so it can't accidently resolve to local IP
+        // Add dot so it can't accidentally resolve to local IP
         $host = $domainName . '.';
 
         return (($ip = gethostbyname($host)) !== $host) ? $ip : false;
@@ -37,7 +49,7 @@ class Validator
      * @param string $domainName
      * @return bool true or false
      */
-    public static function isValidDomainName($domainName)
+    public function isValidDomainName($domainName)
     {
         return (preg_match(/** @lang RegExp */
                 "/^([a-z\d](-*[a-z\d])*)(\.([a-z\d](-*[a-z\d])*))*$/i", $domainName) //valid chars check
@@ -47,7 +59,7 @@ class Validator
                 "/^[^\.]{1,63}(\.[^\.]{1,63})*$/", $domainName)); //length of each label
     }
 
-    public static function isSubDomain($siteName)
+    public function isSubDomain($siteName)
     {
         // Simply by checking if the string contains multiple dots
         return preg_match('/(.*)\.(.*)\.(.*)/', $siteName) ? true : false;
