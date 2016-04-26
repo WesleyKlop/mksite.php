@@ -8,4 +8,5 @@
  */
 require_once '../vendor/autoload.php';
 
-\Mksite\Mksite::Mksite();
+$mkSite = new \Mksite\MkSite();
+$mkSite->MkSite();

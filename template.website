@@ -1,19 +1,19 @@
 # Generated using WesleyKlop/mksite.php
 server {
     listen 80;
-    #listen [::]:80;
+    listen [::]:80;
 
     location ~ /.well-known {
         allow all;
     }
 
     # Redirect all HTTP requests to HTTPS with a 301 Moved Permanently response.
-    #return 301 https://$host$request_uri;
+    #{{ssl}}return 301 https://$host$request_uri;
 
     root {{webroot}}/{{server_name}}/public_html;
     access_log /var/log/nginx/{{server_name}}/access.log;
     error_log /var/log/nginx/{{server_name}}/error.log;
-    server_name {{server_name}} www.{{server_name}};
+    server_name {{server_name}} {{www_server_name}};
 }
 
 server {
@@ -21,7 +21,7 @@ server {
     root {{webroot}}/{{server_name}}/public_html;
     access_log /var/log/nginx/{{server_name}}/access.log;
     error_log /var/log/nginx/{{server_name}}/error.log;
-    server_name {{server_name}} www.{{server_name}};
+    server_name {{server_name}} {{www_server_name}};
 
     index index.php index.html;
 
@@ -42,9 +42,9 @@ server {
     ##
     # HTTPS CONFIG
     ##
-    #ssl_certificate /etc/letsencrypt/live/{{server_name}}/fullchain.pem;
-    #ssl_certificate_key /etc/letsencrypt/live/{{server_name}}/privkey.pem;
-    #ssl_trusted_certificate /etc/letsencrypt/live/{{server_name}}/fullchain.pem;
+    #{{ssl}}ssl_certificate /etc/letsencrypt/live/{{server_name}}/fullchain.pem;
+    #{{ssl}}ssl_certificate_key /etc/letsencrypt/live/{{server_name}}/privkey.pem;
+    #{{ssl}}ssl_trusted_certificate /etc/letsencrypt/live/{{server_name}}/fullchain.pem;
 
-    #include snippets/default-https.conf;
+    #{{ssl}}include snippets/default-https.conf;
 }
